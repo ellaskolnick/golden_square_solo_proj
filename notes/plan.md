@@ -107,6 +107,7 @@ dish = Dish.new("food", 3)
 dish2 = Dish.new("food2", 4)
 meal = Meal.new
 meal.add(dish)
+meal.add(dish2)
 meal.total_price # => 7
 
 #6
