@@ -2,6 +2,7 @@ require 'order'
 require 'meal'
 require 'dish'
 require 'dotenv/load'
+require 'twilio-ruby'
 
 RSpec.describe "order integration" do
   context "one dish is added to the meal" do
@@ -18,14 +19,21 @@ RSpec.describe "order integration" do
       dish = Dish.new("food", 3)
       meal = Meal.new
       meal.add(dish)
-      requester = double :requester
-      allow(requester).to receive(:new)
-        .with(ENV['TWIOLIO_ACCOUNT_SID'], ENV['TWIOLIO_AUTH_TOKEN'])
-        .and_return(client)
-      allow(client).to receive(:messages).to receive(:create).to receive(:sid)
+      from = '+15005550006'
+      to = '+15005550009'
+      message = double :message, status: "queued"
+      message_list = double :message_list, create: message
+      requester = double :requester, messages: message_list
+      expect(message_list).to receive(:create)
+        .with(
+          body: "Thank you! Your order was placed and will be delivered before #{(Time.now + 3600).strftime("%k:%M")}",
+          to: to,
+          from: from
+        ).and_return(message)
+        expect(message).to receive(:status).and_return("queued")
 
       order = Order.new(meal, requester)
-      order.order_meal
+      order.order_meal(from, to)
     end
   end
 
@@ -53,8 +61,10 @@ RSpec.describe "order integration" do
     it "fails" do
       meal = Meal.new
       requester = double :requester
+      from = '+15005550006'
+      to = '+15005550009'
       order = Order.new(meal, requester)
-      expect{ order.order_meal }.to raise_error "There are no dishes in your meal"
+      expect{ order.order_meal(from, to) }.to raise_error "There are no dishes in your meal"
     end
   end
 end
